@@ -10,6 +10,7 @@
   <summary>Development Tools</summary>
 
 - [Git](https://git-scm.com/downloads)
+- [Github CLI](https://cli.github.com/)
 - [Unity Hub](https://unity.com/unity-hub)
 - [C# SDK](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks)
 - IDE (pick your poison)
