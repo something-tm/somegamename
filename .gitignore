@@ -7,6 +7,10 @@
 [Mm]emoryCaptures/
 [Uu]serSettings/
 
+# Ignore temporaries from GameCI
+/[Aa]rtifacts/
+/[Cc]odeCoverage/
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 *.pidb
 *.booproj
