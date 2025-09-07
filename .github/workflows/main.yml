@@ -74,6 +74,7 @@ jobs:
         with:
           targetPlatform: WebGL
           allowDirtyBuild: true
+          scenes: Assets/Scenes/Main.unity
 
 
       # 6️⃣ Upload build artifact
