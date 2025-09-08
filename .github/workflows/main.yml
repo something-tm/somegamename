@@ -1,4 +1,3 @@
-
 name: Unity CI/CD
 
 on:
@@ -14,8 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
-        targetPlatform: [StandaloneWindows64, StandaloneOSX, StandaloneLinux64]
+        include:
+          - os: ubuntu-latest
+            targetPlatform: StandaloneLinux64
+          - os: windows-2022
+            targetPlatform: StandaloneWindows64
+          - os: macos-latest
+            targetPlatform: StandaloneOSX
 
     steps:
       # --- OS-specific cleanup ---
@@ -31,10 +35,10 @@ jobs:
       - name: Free up disk space (Windows)
         if: runner.os == 'Windows'
         run: |
-          echo "Cleaning temp files..."
-          rmdir /s /q C:\ProgramData\chocolatey || echo "choco already removed"
-          rmdir /s /q C:\Android || echo "android sdk already removed"
-          echo "Disk space after cleanup:"
+          Write-Output "Cleaning temp files..."
+          Remove-Item -Recurse -Force "C:\ProgramData\chocolatey" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue
+          Write-Output "Disk space after cleanup:"
           Get-PSDrive
 
       - name: Free up disk space (macOS)
