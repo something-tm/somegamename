@@ -8,19 +8,13 @@ on:
 
 jobs:
   test:
-    name: Test in ${{ matrix.testMode }}
+    name: Run Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: write
       pull-requests: write
-    strategy:
-      fail-fast: false
-      matrix:
-        testMode:
-          - playmode
-          - editmode
-          - standalone
+
     steps:
       - name: Free up disk space
         run: |
@@ -54,16 +48,14 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          testMode: ${{ matrix.testMode }}
-          artifactsPath: ${{ matrix.testMode }}-artifacts
+          artifactsPath: test-artifacts
           githubToken: ${{ github.event_name == 'push' && secrets.GITHUB_TOKEN || '' }}
-          checkName: ${{ github.event_name == 'push' && format('{0} Test Results', matrix.testMode) || '' }}
 
       - name: Upload Test Results
-        if: success()
+        if: steps.tests.outputs.artifactsPath != ''
         uses: actions/upload-artifact@v4
         with:
-          name: Test results for ${{ matrix.testMode }}
+          name: Test results
           path: ${{ steps.tests.outputs.artifactsPath }}
 
   build:
