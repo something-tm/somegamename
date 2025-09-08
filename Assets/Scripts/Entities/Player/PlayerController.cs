@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float movementSpeed = 5f;
+    public Player playerData;
 
     // private so that no one can access it outside this class
     private Rigidbody2D rigidBody;
@@ -53,6 +53,6 @@ public class PlayerController : MonoBehaviour
          *  multiplying it with movement speed
          *  Time.fixedDeltaTime is used for fixing the framerate bound movement
          */
-        rigidBody.MovePosition(rigidBody.position + movement * movementSpeed * Time.fixedDeltaTime);
+        rigidBody.MovePosition(rigidBody.position + movement * playerData.speed * Time.fixedDeltaTime);
     }
 }
