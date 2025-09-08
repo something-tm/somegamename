@@ -49,7 +49,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           artifactsPath: test-artifacts
-          githubToken: ${{ github.event_name == 'push' && secrets.GITHUB_TOKEN || '' }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Test Results
         if: steps.tests.outputs.artifactsPath != ''
@@ -75,19 +75,23 @@ jobs:
 
     steps:
       # --- OS-specific cleanup ---
-      - name: Free up disk space
+      - name: Free up MacOS & Linux disk space
+        if: runner.os != 'Windows'
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo rm -rf /usr/share/dotnet /usr/local/lib/android
             sudo apt-get clean
             docker system prune --all --force
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            Remove-Item -Recurse -Force "C:\ProgramData\chocolatey" -ErrorAction SilentlyContinue
-            Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             sudo rm -rf /Applications/Xcode*.app /Library/Android
           fi
           df -h
+
+      - name: Free up Windows disk space
+        if: runner.os == 'Windows'
+        run: |
+          Remove-Item -Recurse -Force "C:\ProgramData\chocolatey" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue
 
       # --- Checkout code ---
       - name: Checkout with LFS
