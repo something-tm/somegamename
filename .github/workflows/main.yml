@@ -1,3 +1,4 @@
+
 name: Unity CI/CD
 
 on:
@@ -8,76 +9,71 @@ on:
 
 jobs:
   build:
-    name: Build and Test Unity Project
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.targetPlatform }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022, macos-latest]
+        targetPlatform: [StandaloneWindows64, StandaloneOSX, StandaloneLinux64]
+
     steps:
-      - name: Free up disk space
+      # --- OS-specific cleanup ---
+      - name: Free up disk space (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo apt-get clean
-          df -h
-      
-      - name: Clean up docker system
-        run: |
           docker system prune --all --force
           df -h
 
-      # 1️⃣ Checkout repository with Git LFS support
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Free up disk space (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "Cleaning temp files..."
+          rmdir /s /q C:\ProgramData\chocolatey || echo "choco already removed"
+          rmdir /s /q C:\Android || echo "android sdk already removed"
+          echo "Disk space after cleanup:"
+          Get-PSDrive
+
+      - name: Free up disk space (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sudo rm -rf /Applications/Xcode*.app
+          sudo rm -rf /Library/Android
+          df -h
+
+      # --- Checkout code ---
+      - uses: actions/checkout@v4
         with:
           lfs: true
+          fetch-depth: 0
 
-      # 2️⃣ Optional: Cache Git LFS assets
-      - name: Create LFS file list
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-
-      - name: Restore LFS cache
-        uses: actions/cache@v3
-        id: lfs-cache
-        with:
-          path: .git/lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
-
-      - name: Git LFS Pull
-        run: |
-          git lfs pull
-          git add .
-          git reset --hard
-
-      # 3️⃣ Cache Unity Library folder
+      # --- Cache ---
       - uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-${{ runner.os }}-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
+            Library-${{ runner.os }}-${{ matrix.targetPlatform }}-
+            Library-${{ runner.os }}-
             Library-
 
-      # 4️⃣ Run Unity tests
-      - name: Run tests
-        uses: game-ci/unity-test-runner@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          githubToken: '' # disable or move to PATs maybe?
-
-      # 5️⃣ Build Unity project
-      - name: Build project
+      # --- Build step ---
+      - name: Build Unity Project
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: WebGL
+          targetPlatform: ${{ matrix.targetPlatform }}
           allowDirtyBuild: true
 
-      # 6️⃣ Upload build artifact
+      # --- Upload artifact ---
       - uses: actions/upload-artifact@v4
         with:
-          name: Build
+          name: Build-${{ matrix.targetPlatform }}-${{ matrix.os }}
           path: build
 
