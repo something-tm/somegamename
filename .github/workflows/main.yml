@@ -57,6 +57,7 @@ jobs:
           testMode: ${{ matrix.testMode }}
           artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ${{ github.event_name == 'push' && format('{0} Test Results', matrix.testMode) || '' }}
 
       - name: Upload Test Results
         if: success()
