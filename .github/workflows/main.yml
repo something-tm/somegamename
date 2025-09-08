@@ -49,7 +49,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           artifactsPath: test-artifacts
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          githubToken: ${{ github.event_name == 'push' && secrets.GITHUB_TOKEN || '' }}
 
       - name: Upload Test Results
         if: steps.tests.outputs.artifactsPath != ''
