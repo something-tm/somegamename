@@ -2,9 +2,11 @@ name: Unity CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   pr-update-check:
@@ -13,7 +15,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     outputs:
-      up_to_date: ${{ steps.check.outputs.up_to_date }}
+      up_to_date: ${{ steps.checks.outputs.up_to_date }}
     steps:
       - name: Checkout with LFS
         uses: actions/checkout@v4
@@ -25,13 +27,13 @@ jobs:
       - name: Fetch main
         run: git fetch origin main
 
-      - id: check
+      - id: checks
         name: Check if branch is up-to-date
         run: |
           if ! git merge-base --is-ancestor origin/main ${{ github.event.pull_request.head.sha }};
           then
-            echo "This branch is not up-to-date with main"
-            exit 1
+            echo "This branch is not up-to-date with main";
+            exit 1;
           fi
 
       - name: Comment PR if branch is behind
@@ -50,7 +52,11 @@ jobs:
       contents: read
       actions: write
       pull-requests: write
-
+    strategy:
+      fail-fast: false
+      matrix:
+        unityVersion:
+          - 6000.2.2f1
     steps:
       - name: Free up disk space
         run: |
@@ -70,7 +76,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ runner.os }}-unity-${{ hashFiles('Assets/**','Packages/**','ProjectSettings/**') }}
+          key: Library-${{ runner.os }}-unity-${{ hashFiles('Packages/**','ProjectSettings/**') }}
           restore-keys: |
             Library-${{ runner.os }}-unity-
             Library-${{ runner.os }}-
@@ -78,7 +84,7 @@ jobs:
 
       - name: Run Tests
         uses: game-ci/unity-test-runner@v4
-        id: test
+        id: tests
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -86,6 +92,7 @@ jobs:
         with:
           artifactsPath: test-artifacts
           githubToken: ${{ github.event_name == 'push' && secrets.GITHUB_TOKEN || '' }}
+          unityVersion: ${{ matrix.unityVersion }}
 
       - name: Upload Test Results
         if: steps.tests.outputs.artifactsPath != ''
@@ -94,20 +101,34 @@ jobs:
           name: Test results
           path: ${{ steps.tests.outputs.artifactsPath }}
 
+      - name: Comment if tests failed
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          header: "Unity Test Results"
+          message: "⚠️ Unity tests failed. Check test-artifacts for details."
+
   build:
     name: Build ${{ matrix.targetPlatform }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: test
+    permissions:
+      pull-requests: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             targetPlatform: StandaloneLinux64
+            unityVersion: 6000.2.2f1
           - os: windows-2022
             targetPlatform: StandaloneWindows64
+            unityVersion: 6000.2.2f1
           - os: macos-latest
             targetPlatform: StandaloneOSX
+            unityVersion: 6000.2.2f1
 
     steps:
       # --- OS-specific cleanup ---
@@ -140,11 +161,8 @@ jobs:
       - name: Cache Library
         uses: actions/cache@v3
         with:
-          path: |
-            Library
-            Temp
-            Packages
-          key: Library-${{ runner.os }}-unity-${{ hashFiles('Assets/**','Packages/**','ProjectSettings/**') }}
+          path: Library
+          key: Library-${{ runner.os }}-unity-${{ hashFiles('Packages/**','ProjectSettings/**') }}
           restore-keys: |
             Library-${{ runner.os }}-unity-
             Library-${{ runner.os }}-
@@ -152,7 +170,7 @@ jobs:
 
       # --- Build step ---
       - name: Build Unity Project
-        id: build
+        id: builds
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -160,6 +178,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
+          unityVersion: ${{ matrix.unityVersion }}
           allowDirtyBuild: true
 
       # --- Upload artifact ---
@@ -169,4 +188,12 @@ jobs:
         with:
           name: Build-${{ matrix.targetPlatform }}-${{ matrix.os }}
           path: build
+
+      - name: Comment if build failed
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          header: "Unity Build Results"
+          message: "⚠️ Unity build failed on ${{ matrix.targetPlatform }} / ${{ matrix.os }}."
 
