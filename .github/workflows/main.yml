@@ -7,9 +7,45 @@ on:
     branches: [main]
 
 jobs:
+  pr-update-check:
+    permissions:
+      pull-requests: write
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      up_to_date: ${{ steps.check.outputs.up_to_date }}
+    steps:
+      - name: Checkout with LFS
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          lfs: true
+          fetch-depth: 0
+
+      - name: Fetch main
+        run: git fetch origin main
+
+      - id: check
+        name: Check if branch is up-to-date
+        run: |
+          if ! git merge-base --is-ancestor origin/main ${{ github.event.pull_request.head.sha }};
+          then
+            echo "This branch is not up-to-date with main"
+            exit 1
+          fi
+
+      - name: Comment PR if branch is behind
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          header: "PR Update Check"
+          message: "⚠️ Your branch is not up-to-date with main. Please merge or rebase main."
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    needs: pr-update-check
     permissions:
       contents: read
       actions: write
@@ -42,7 +78,7 @@ jobs:
 
       - name: Run Tests
         uses: game-ci/unity-test-runner@v4
-        id: tests
+        id: test
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -116,6 +152,7 @@ jobs:
 
       # --- Build step ---
       - name: Build Unity Project
+        id: build
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
