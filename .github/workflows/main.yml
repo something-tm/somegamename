@@ -29,6 +29,7 @@ jobs:
 
       - id: checks
         name: Check if branch is up-to-date
+        if: github.event_name == 'pull_request'
         run: |
           if ! git merge-base --is-ancestor origin/main ${{ github.event.pull_request.head.sha }};
           then
