@@ -41,9 +41,11 @@ jobs:
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           header: "PR Update Check"
           message: "⚠️ Your branch is not up-to-date with main. Please merge or rebase main."
+          skip_unchanged: true
+          recreate: true
 
   test:
     name: Run Tests
@@ -106,9 +108,11 @@ jobs:
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           header: "Unity Test Results"
           message: "⚠️ Unity tests failed. Check test-artifacts for details."
+          skip_unchanged: true
+          recreate: true
 
   build:
     name: Build ${{ matrix.targetPlatform }} on ${{ matrix.os }}
@@ -194,7 +198,9 @@ jobs:
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           header: "Unity Build Results"
           message: "⚠️ Unity build failed on ${{ matrix.targetPlatform }} / ${{ matrix.os }}."
+          skip_unchanged: true
+          recreate: true
 
