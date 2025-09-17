@@ -1,8 +1,16 @@
 // tells unity that this class can be saved, loaded, and show in the inspector
-[System.Serializable]
-public class Player
+public class Player : Entity
 {
-    public string playerName = "Player";
-    public float health = 100f;
-    public float speed = 5f;
+    private PlayerController controller;
+
+    public Stats Stats => stats;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        entityName = "Player";
+        controller = GetComponent<PlayerController>();
+
+        stats ??= new Stats(baseStats);
+    }
 }

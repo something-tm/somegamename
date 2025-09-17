@@ -53,6 +53,6 @@ public class PlayerController : MonoBehaviour
          *  multiplying it with movement speed
          *  Time.fixedDeltaTime is used for fixing the framerate bound movement
          */
-        rigidBody.MovePosition(rigidBody.position + movement * playerData.speed * Time.fixedDeltaTime);
+        rigidBody.MovePosition(rigidBody.position + movement * playerData.Stats.moveSpeed * Time.fixedDeltaTime);
     }
 }
